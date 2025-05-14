@@ -12,6 +12,7 @@ interface CartContextType {
   clearCart: () => void;
   getCartTotal: () => number;
   getItemCount: () => number;
+  isLoaded: boolean; // Added isLoaded state
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -25,7 +26,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const storedCart = localStorage.getItem(CART_STORAGE_KEY);
     if (storedCart) {
-      setCartItems(JSON.parse(storedCart));
+      try {
+        setCartItems(JSON.parse(storedCart));
+      } catch (error) {
+        console.error("Failed to parse cart from localStorage", error);
+        localStorage.removeItem(CART_STORAGE_KEY); // Clear corrupted cart data
+      }
     }
     setIsLoaded(true);
   }, []);
@@ -64,7 +70,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         item.product.id === productId && item.selectedSize === selectedSize && item.selectedColor === selectedColor
           ? { ...item, quantity: newQuantity > 0 ? newQuantity : 1 }
           : item
-      ).filter(item => item.quantity > 0) // Ensure item is removed if quantity becomes 0 through other means, though UI should prevent <1
+      ).filter(item => item.quantity > 0) 
     );
   }, []);
 
@@ -81,7 +87,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, [cartItems]);
 
   return (
-    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity, clearCart, getCartTotal, getItemCount }}>
+    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity, clearCart, getCartTotal, getItemCount, isLoaded }}>
       {children}
     </CartContext.Provider>
   );
